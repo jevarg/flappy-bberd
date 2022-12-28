@@ -32,6 +32,7 @@ class App:
  
     def on_init(self):
         pygame.init()
+        self._clock = pygame.time.Clock()
         font = pygame.font.SysFont(None, 48)
         self._game_over_img = font.render('Game Over', False, WHITE, TRANSPARENT)
         self._display_surf = pygame.display.set_mode(self.size)
@@ -48,7 +49,7 @@ class App:
                     case pygame.K_SPACE:
                         self._player.jump()
 
-    def on_loop(self):
+    def on_loop(self, dt):
         if self._game_state == GameState.GAME_OVER:
             return
 
@@ -67,14 +68,14 @@ class App:
                 if len(collision) > 0:
                     print('Game Over')
                     self._game_state = GameState.GAME_OVER
-                o.update(1)
+                o.update(dt)
             else:
                 to_remove.append(o)
 
         for o in to_remove:
             self._obstacles.remove(o)
 
-        self._sprites.update()
+        self._sprites.update(dt)
 
     def on_render(self):
         for o in self._obstacles:
@@ -94,12 +95,13 @@ class App:
             self._game_state = False
  
         while not self._needs_exit:
+            dt = self._clock.tick(60)
             self._display_surf.fill(0)
 
             for event in pygame.event.get():
                 self.on_event(event)
 
-            self.on_loop()
+            self.on_loop(dt)
             self.on_render()
 
             pygame.display.flip()
