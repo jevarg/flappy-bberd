@@ -2,12 +2,15 @@ import pygame
 import random
 from Player import Player
 from ObstacleGroup import ObstacleGroup
+from Obstacle import Obstacle
 from pygame.locals import *
 from enum import Enum
  
 BLACK = pygame.Color(0, 0, 0)
 WHITE = pygame.Color(255, 255, 255)
 TRANSPARENT = pygame.Color(0, 0, 0, 0)
+
+display_scale = 3
 
 class GameState(Enum):
     NOT_RUNNING = 0,
@@ -16,10 +19,11 @@ class GameState(Enum):
 
 class App:
     def __init__(self):
-        self._display_surf = None
+        self._surface = None
         self._needs_exit = False
         self._game_state = GameState.NOT_RUNNING
-        self.size = self.width, self.height = 640, 400
+        self.width, self.height = 320, 240
+        self.size = self.width * display_scale, self.height * display_scale
         self._max_num_obstacles = 2
         self._min_spacing = 190
         self._player = Player()
@@ -27,15 +31,18 @@ class App:
         self._player.rect.y = 0
         self._sprites = pygame.sprite.Group()
         self._obstacles = list()
+        self._background_img = pygame.image.load("assets/background.png")
+        self._game_over_img = pygame.image.load("assets/game-over.png")
+        self._score = 0
 
         self._sprites.add(self._player)
  
     def on_init(self):
         pygame.init()
         self._clock = pygame.time.Clock()
-        font = pygame.font.SysFont(None, 48)
-        self._game_over_img = font.render('Game Over', False, WHITE, TRANSPARENT)
-        self._display_surf = pygame.display.set_mode(self.size)
+        self._font = pygame.font.SysFont("assets/opensans-regular.ttf", 48)
+        self._surface = pygame.surface.Surface([self.width, self.height])
+        self._display = pygame.display.set_mode(self.size)
         self._game_state = GameState.RUNNING
  
     def on_event(self, event: pygame.event):
@@ -58,16 +65,20 @@ class App:
 
         num_obstacles = len(self._obstacles)
         if num_obstacles < self._max_num_obstacles:
-            height = random.randint(0, self.height - 200)
-            self._obstacles.append(ObstacleGroup(self.width + (num_obstacles * random.randint(self._min_spacing, 300)), self.height, height))
+            height = random.randint(0, self.height - 100)
+            self._obstacles.append(ObstacleGroup(self.width + (num_obstacles * random.randint(self._min_spacing, self.width)), self.height, height))
 
         to_remove = list()
         for o in self._obstacles:
             if len(o):
                 collision = pygame.sprite.groupcollide(self._sprites, o, False, False)
-                if len(collision) > 0:
-                    print('Game Over')
-                    self._game_state = GameState.GAME_OVER
+                if self._player in collision:
+                    if isinstance(collision[self._player][0], Obstacle):
+                        print('Game Over')
+                        self._game_state = GameState.GAME_OVER
+                    else:
+                        self._score += 1
+                        collision[self._player][0].kill()
                 o.update(dt)
             else:
                 to_remove.append(o)
@@ -79,13 +90,14 @@ class App:
 
     def on_render(self):
         for o in self._obstacles:
-            o.draw(self._display_surf)
-        self._sprites.draw(self._display_surf)
+            o.draw(self._surface)
+        self._sprites.draw(self._surface)
 
         if self._game_state == GameState.GAME_OVER:
-            r = self._game_over_img.get_rect()
-            r.center = (self.width / 2, self.height / 2)
-            self._display_surf.blit(self._game_over_img, r)
+            self._surface.blit(self._game_over_img, (0, 0))
+
+        score_surface = self._font.render(str(self._score), False, WHITE)
+        self._surface.blit(score_surface, (2, 0))
 
     def on_cleanup(self):
         pygame.quit()
@@ -96,13 +108,16 @@ class App:
  
         while not self._needs_exit:
             dt = self._clock.tick(60)
-            self._display_surf.fill(0)
+            self._surface.blit(self._background_img, (0, 0))
 
             for event in pygame.event.get():
                 self.on_event(event)
 
             self.on_loop(dt)
             self.on_render()
+
+            scaled_surf = pygame.transform.scale(self._surface, self.size)
+            self._display.blit(scaled_surf, (0, 0))
 
             pygame.display.flip()
         self.on_cleanup()

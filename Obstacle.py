@@ -1,12 +1,15 @@
 import pygame
 
-game_speed = 0.5
+game_speed = 0.2
 class Obstacle(pygame.sprite.Sprite):
     def __init__(self, height) -> None:
         super().__init__()
-        # self.image = pygame.image.load('assets/obstacle.png')
         self.image = pygame.Surface([32, height])
-        self.image.fill(pygame.Color(0, 255, 0))
+        
+        sprite_img = pygame.image.load('assets/obstacle.png')
+        for i in range(0, height, sprite_img.get_size()[1]):
+            self.image.blit(sprite_img, (0, i))
+
         self.rect = self.image.get_rect()
         self.pos = [0, 0]
 
