@@ -15,7 +15,8 @@ display_scale = 3
 class GameState(Enum):
     NOT_RUNNING = 0,
     RUNNING = 1,
-    GAME_OVER = 2,
+    PAUSED = 2,
+    GAME_OVER = 3,
 
 class App:
     def __init__(self):
@@ -39,6 +40,7 @@ class App:
  
     def on_init(self):
         pygame.init()
+        pygame.display.set_caption("Flappy BBerd")
         self._clock = pygame.time.Clock()
         self._font = pygame.font.SysFont("assets/opensans-regular.ttf", 48)
         self._surface = pygame.surface.Surface([self.width, self.height])
@@ -51,13 +53,16 @@ class App:
                 self._needs_exit = True
             case pygame.KEYDOWN:
                 match event.key:
+                    case pygame.K_p:
+                        if self._game_state != GameState.GAME_OVER:
+                            self._game_state = GameState.PAUSED if self._game_state is GameState.RUNNING else GameState.RUNNING
                     case pygame.K_ESCAPE:
                         self._needs_exit = True
                     case pygame.K_SPACE:
                         self._player.jump()
 
     def on_loop(self, dt):
-        if self._game_state == GameState.GAME_OVER:
+        if self._game_state == GameState.GAME_OVER or self._game_state == GameState.PAUSED:
             return
 
         if self._player.pos[1] > self.height - 32:
@@ -108,6 +113,7 @@ class App:
  
         while not self._needs_exit:
             dt = self._clock.tick(60)
+
             self._surface.blit(self._background_img, (0, 0))
 
             for event in pygame.event.get():
